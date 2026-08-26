@@ -11,7 +11,7 @@ Dedicated Locale Tab is an open-source Chrome and Microsoft Edge Manifest V3 ext
 
 This extension is intended for browser localization and timezone-isolation testing in web internationalization development, language-compatibility testing, and privacy research. **It must not be used to bypass website geographic restrictions, account bans, or security measures.** Users must also comply with the target website's terms of service and applicable rules.
 
-It opens a website in a dedicated window and overrides only that controlled target:
+It opens a website in a dedicated window and overrides only controlled tabs in that window:
 
 - `navigator.language` and `navigator.languages`;
 - the default JavaScript `Intl` locale;
@@ -29,10 +29,12 @@ Ordinary browser tabs are not modified.
 - controlled-window status and in-page environment inspection;
 - child-target protection for related frames and workers;
 - fail-closed behavior that closes a controlled window after an unexpected debugger detach.
+- multiple tabs per isolated window, with every tab inheriting the window's language and timezone configuration;
+- strict inspection of the primary language, complete language list, Intl locale, IANA timezone, and DST-aware offset.
 
 ## How it works
 
-The extension creates a blank popup window, attaches Chrome DevTools Protocol to that target, applies locale, language, and timezone overrides, and only then navigates to the requested website. The extension does not change the global browser profile or operating-system settings.
+The extension creates a normal browser window with a tab strip, attaches Chrome DevTools Protocol to each controlled tab, applies locale, language-list, request-header, and timezone overrides, and only then navigates to the requested website. New tabs created through the control page inherit the window configuration before navigation. The extension does not change the global browser profile or operating-system settings.
 
 ## Install from source
 
@@ -50,10 +52,11 @@ Chrome displays a debugger permission warning because CDP access is required for
 2. Open the extension control page and enter the target URL.
 3. Search for a country/city preset or use the full dropdown.
 4. Confirm the language and timezone. Prefer the exact IANA timezone returned by an IP-location test.
-5. Select **Open dedicated page**.
+5. Select **Open isolated window**.
 6. Use the target site only inside the new controlled window.
-7. Return to the control page and run **Inspect environment** when needed.
-8. Close the controlled page when finished.
+7. Use **New isolated tab** on the running-window card when more tabs are needed. Create another isolated window for a different language/timezone configuration.
+8. Return to the control page and run **Inspect environment** when needed.
+9. Close the complete isolated window when finished.
 
 ## Permissions
 
@@ -72,6 +75,15 @@ The extension contains no telemetry, ads, trackers, or remotely hosted executabl
 - The extension controls language and timezone only. Websites may also evaluate IP, DNS, WebRTC, account region, cookies, geolocation permission, fonts, and other signals.
 - Country-language presets are defaults, not claims that every user in a country has the same language preference.
 
+## Windows and macOS compatibility
+
+| Platform | Chrome 125+ | Microsoft Edge 125+ | Status |
+| --- | --- | --- | --- |
+| Windows 10/11 | Supported | Supported | Used and smoke-tested on Windows |
+| macOS 13 Ventura+ | Supported | Supported | Uses the same Chromium extension APIs; manual browser smoke testing is still recommended |
+
+The project contains no Windows-only paths, registry integration, native binaries, or operating-system calls. CI runs syntax, configuration, and pure-logic tests on Windows, macOS, and Linux. CI does not launch a real desktop browser, so release validation should still load the unpacked extension in the target Chrome and Edge versions.
+
 Use the project in compliance with applicable rules and the target website's terms.
 
 ## Development
@@ -84,6 +96,7 @@ node --check background.js
 node --check control.js
 node --check lib\config.js
 node --check lib\environment-data.js
+node --check lib\inspection.js
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [CHANGELOG.md](CHANGELOG.md).

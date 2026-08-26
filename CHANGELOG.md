@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here.
 
+## [0.3.0] - 2026-08-26
+
+### Added
+
+- Window-level isolation: one controlled window can contain multiple tabs that inherit the same language and timezone configuration.
+- A safe “new isolated tab” action on each running-window card.
+- Cross-platform CI jobs for Windows, macOS, and Linux.
+
+### Changed
+
+- `navigator.languages` now contains only BCP 47 language tags, while the HTTP `Accept-Language` header retains quality weights.
+- Environment inspection now validates the complete language list, Intl locale, IANA timezone, and DST-aware timezone offset.
+
 ## [0.2.1] - 2026-08-26
 
 ### Added

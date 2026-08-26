@@ -10,8 +10,13 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - name: Check out repository
@@ -27,11 +32,7 @@ jobs:
         run: node --test
 
       - name: Check JavaScript syntax
-        run: |
-          node --check background.js
-          node --check control.js
-          node --check lib/config.js
-          node --check lib/environment-data.js
+        run: npm run check
 
       - name: Validate manifest JSON
         run: node -e "JSON.parse(require('node:fs').readFileSync('manifest.json', 'utf8'))"

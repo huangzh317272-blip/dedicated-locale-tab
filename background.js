@@ -1,4 +1,4 @@
-import { normalizeConfig } from "./lib/config.js";
+import { buildLanguageList, normalizeConfig } from "./lib/config.js";
 
 const REGISTRY_KEY = "controlledTabsV1";
 const CONTROL_PAGE = "control.html";
@@ -6,6 +6,7 @@ const DEBUGGER_PROTOCOL_VERSION = "1.3";
 const WINDOW_SIZE = Object.freeze({ width: 1280, height: 900 });
 
 let registryQueue = Promise.resolve();
+const tabProtectionPromises = new Map();
 
 function errorText(error) {
   if (error instanceof Error && error.message) {
@@ -48,6 +49,21 @@ async function deleteRecord(tabId) {
 async function getRecord(tabId) {
   const registry = await readRegistry();
   return registry[String(tabId)] ?? null;
+}
+
+async function getWindowSeed(windowId) {
+  const registry = await readRegistry();
+  return Object.values(registry).find((record) => record.windowId === windowId) ?? null;
+}
+
+async function deleteWindowRecords(windowId) {
+  await updateRegistry((registry) => {
+    for (const [tabId, record] of Object.entries(registry)) {
+      if (record.windowId === windowId) {
+        delete registry[tabId];
+      }
+    }
+  });
 }
 
 async function sendCommand(target, method, params = undefined) {
@@ -122,15 +138,21 @@ async function applyOverrides(target, config, userAgentProfile) {
     locale: config.locale
   });
 
+  const languages = config.languages ?? buildLanguageList(config.language);
   const userAgentParams = {
     userAgent: userAgentProfile.userAgent,
-    acceptLanguage: config.acceptLanguage
+    acceptLanguage: languages.join(",")
   };
   if (userAgentProfile.metadata) {
     userAgentParams.userAgentMetadata = userAgentProfile.metadata;
   }
 
   await sendCommand(target, "Emulation.setUserAgentOverride", userAgentParams);
+  await sendCommand(target, "Network.setExtraHTTPHeaders", {
+    headers: {
+      "Accept-Language": config.acceptLanguage
+    }
+  });
 }
 
 async function enableChildTargetProtection(target) {
@@ -141,6 +163,50 @@ async function enableChildTargetProtection(target) {
   });
 }
 
+async function protectControlledTab(tabId, seed, navigateUrl = null) {
+  if (tabProtectionPromises.has(tabId)) {
+    return tabProtectionPromises.get(tabId);
+  }
+
+  const protection = (async () => {
+    if (await getRecord(tabId)) {
+      return { tabId, windowId: seed.windowId };
+    }
+
+    const target = { tabId };
+    try {
+      await chrome.debugger.attach(target, DEBUGGER_PROTOCOL_VERSION);
+      await saveRecord(tabId, {
+        config: seed.config,
+        userAgentProfile: seed.userAgentProfile,
+        windowId: seed.windowId,
+        createdAt: new Date().toISOString()
+      });
+      await applyOverrides(target, seed.config, seed.userAgentProfile);
+      await enableChildTargetProtection(target);
+      if (navigateUrl) {
+        await sendCommand(target, "Page.navigate", { url: navigateUrl });
+      }
+      return { tabId, windowId: seed.windowId };
+    } catch (error) {
+      await deleteRecord(tabId);
+      try {
+        await chrome.tabs.remove(tabId);
+      } catch {
+        // The tab may already be closed.
+      }
+      throw error;
+    }
+  })();
+
+  tabProtectionPromises.set(tabId, protection);
+  try {
+    return await protection;
+  } finally {
+    tabProtectionPromises.delete(tabId);
+  }
+}
+
 async function createControlledPage(rawConfig) {
   const config = normalizeConfig(rawConfig);
   let createdWindow = null;
@@ -149,7 +215,7 @@ async function createControlledPage(rawConfig) {
   try {
     createdWindow = await chrome.windows.create({
       url: "about:blank",
-      type: "popup",
+      type: "normal",
       focused: true,
       width: WINDOW_SIZE.width,
       height: WINDOW_SIZE.height
@@ -198,21 +264,29 @@ async function createControlledPage(rawConfig) {
 
 async function listControlledPages() {
   const registry = await readRegistry();
-  const pages = [];
+  const windows = new Map();
   const staleTabIds = [];
 
   for (const [tabIdText, record] of Object.entries(registry)) {
     const tabId = Number(tabIdText);
     try {
       const tab = await chrome.tabs.get(tabId);
-      pages.push({
-        tabId,
+      const group = windows.get(tab.windowId) ?? {
         windowId: tab.windowId,
+        config: record.config,
+        createdAt: record.createdAt,
+        tabs: []
+      };
+      group.tabs.push({
+        tabId,
         title: tab.title || "专用页面",
         url: tab.url || record.config.url,
-        config: record.config,
-        createdAt: record.createdAt
+        active: Boolean(tab.active)
       });
+      if (record.createdAt < group.createdAt) {
+        group.createdAt = record.createdAt;
+      }
+      windows.set(tab.windowId, group);
     } catch {
       staleTabIds.push(tabId);
     }
@@ -226,7 +300,20 @@ async function listControlledPages() {
     });
   }
 
-  return pages.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return [...windows.values()]
+    .map((group) => {
+      const activeTab = group.tabs.find((tab) => tab.active) ?? group.tabs[0];
+      return {
+        tabId: activeTab.tabId,
+        windowId: group.windowId,
+        title: activeTab.title,
+        url: activeTab.url,
+        tabCount: group.tabs.length,
+        config: group.config,
+        createdAt: group.createdAt
+      };
+    })
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 async function inspectControlledPage(tabId) {
@@ -239,6 +326,7 @@ async function inspectControlledPage(tabId) {
     const now = new Date();
     const resolved = new Intl.DateTimeFormat().resolvedOptions();
     return {
+      timestampMs: now.getTime(),
       language: navigator.language,
       languages: Array.from(navigator.languages ?? []),
       locale: resolved.locale,
@@ -264,6 +352,26 @@ async function inspectControlledPage(tabId) {
   };
 }
 
+async function createControlledTab(windowId) {
+  const seed = await getWindowSeed(windowId);
+  if (!seed) {
+    throw new Error("该隔离窗口已失效，请重新创建。");
+  }
+
+  await chrome.windows.get(windowId);
+  const tab = await chrome.tabs.create({
+    windowId,
+    url: "about:blank",
+    active: true
+  });
+  if (!tab.id) {
+    throw new Error("浏览器没有成功创建新的隔离标签页。");
+  }
+
+  await protectControlledTab(tab.id, seed);
+  return { tabId: tab.id, windowId };
+}
+
 async function focusControlledPage(tabId) {
   const tab = await chrome.tabs.get(tabId);
   await chrome.windows.update(tab.windowId, { focused: true });
@@ -276,16 +384,16 @@ async function closeControlledPage(tabId) {
     throw new Error("该专用页面已经关闭。");
   }
 
+  await deleteWindowRecords(record.windowId);
   try {
     await chrome.windows.remove(record.windowId);
   } catch {
-    try {
-      await chrome.tabs.remove(tabId);
-    } catch {
-      // It is already gone; registry cleanup still needs to run.
+    const tabs = await chrome.tabs.query({ windowId: record.windowId });
+    const tabIds = tabs.map((tab) => tab.id).filter(Number.isInteger);
+    if (tabIds.length) {
+      await chrome.tabs.remove(tabIds);
     }
   }
-  await deleteRecord(tabId);
 }
 
 async function openControlPage() {
@@ -320,6 +428,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         return listControlledPages();
       case "inspect-controlled-page":
         return inspectControlledPage(Number(message.tabId));
+      case "create-controlled-tab":
+        return createControlledTab(Number(message.windowId));
       case "focus-controlled-page":
         return focusControlledPage(Number(message.tabId));
       case "close-controlled-page":
@@ -401,4 +511,28 @@ chrome.debugger.onDetach.addListener((source, reason) => {
 
 chrome.tabs.onRemoved.addListener((tabId) => {
   deleteRecord(tabId).catch((error) => console.error(errorText(error)));
+});
+
+chrome.tabs.onCreated.addListener((tab) => {
+  if (!tab.id || !Number.isInteger(tab.windowId)) {
+    return;
+  }
+
+  const inheritWindowEnvironment = async () => {
+    const seed = await getWindowSeed(tab.windowId);
+    if (!seed || await getRecord(tab.id)) {
+      return;
+    }
+
+    const requestedUrl = tab.pendingUrl || tab.url || "";
+    const navigateUrl = /^https?:/i.test(requestedUrl) ? requestedUrl : null;
+    if (requestedUrl && requestedUrl !== "about:blank") {
+      await chrome.tabs.update(tab.id, { url: "about:blank" });
+    }
+    await protectControlledTab(tab.id, seed, navigateUrl);
+  };
+
+  inheritWindowEnvironment().catch((error) => {
+    console.error(`新标签页隔离失败：${errorText(error)}`);
+  });
 });

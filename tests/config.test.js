@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   buildAcceptLanguage,
+  buildLanguageList,
   normalizeConfig,
   normalizeLanguage,
   normalizeTimezone,
@@ -24,6 +25,11 @@ test("canonicalizes BCP 47 language tags", () => {
 });
 
 test("builds a consistent Accept-Language value", () => {
+  assert.deepEqual(buildLanguageList("en-US"), ["en-US", "en"]);
+  assert.deepEqual(
+    buildLanguageList("zh-Hant-TW"),
+    ["zh-Hant-TW", "zh-Hant", "zh"]
+  );
   assert.equal(buildAcceptLanguage("en-US"), "en-US,en;q=0.9");
   assert.equal(
     buildAcceptLanguage("zh-Hant-TW"),
@@ -47,6 +53,7 @@ test("produces the complete CDP configuration", () => {
       url: "https://example.com/",
       timezoneId: "Asia/Tokyo",
       language: "ja-JP",
+      languages: ["ja-JP", "ja"],
       locale: "ja_JP",
       acceptLanguage: "ja-JP,ja;q=0.9"
     }

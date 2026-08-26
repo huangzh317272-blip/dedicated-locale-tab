@@ -26,7 +26,8 @@ test("all extension entry-point files exist", async () => {
     "control.css",
     "control.js",
     "lib/config.js",
-    "lib/environment-data.js"
+    "lib/environment-data.js",
+    "lib/inspection.js"
   ];
 
   for (const relativePath of paths) {
@@ -40,4 +41,13 @@ test("control page keeps searchable presets and a synchronized dropdown", async 
   assert.match(html, /id="preset"[^>]*list="preset-options"/s);
   assert.match(html, /id="preset-select"/);
   assert.match(html, /id="preset-options"/);
+  assert.match(html, /class="secondary-button new-tab-button"/);
+});
+
+test("background supports window-level multi-tab isolation", async () => {
+  const background = await readFile(resolve(projectRoot, "background.js"), "utf8");
+  assert.match(background, /type:\s*"normal"/);
+  assert.match(background, /case "create-controlled-tab"/);
+  assert.match(background, /chrome\.tabs\.onCreated\.addListener/);
+  assert.match(background, /Network\.setExtraHTTPHeaders/);
 });

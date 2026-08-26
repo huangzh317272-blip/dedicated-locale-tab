@@ -10,6 +10,7 @@ import {
   REGION_PRESETS,
   getSupportedTimezones
 } from "./lib/environment-data.js";
+import { evaluateInspection } from "./lib/inspection.js";
 
 const SETTINGS_KEY = "lastEnvironmentSettingsV1";
 
@@ -49,7 +50,7 @@ function setMessage(text = "", type = "") {
 function setBusy(isBusy) {
   openButton.disabled = isBusy;
   refreshButton.disabled = isBusy;
-  openButton.textContent = isBusy ? "正在建立隔离环境…" : "打开专用页面";
+  openButton.textContent = isBusy ? "正在建立隔离环境…" : "打开隔离窗口";
 }
 
 function populateReferenceLists() {
@@ -136,21 +137,25 @@ async function sendMessage(message) {
 function formatInspection(result) {
   const expected = result.expected;
   const actual = result.actual;
-  const languageMatches = actual?.language === expected.language;
-  const timezoneMatches = actual?.timezone === expected.timezoneId;
+  const report = evaluateInspection(expected, actual);
+  const mark = (passed) => passed ? "✓" : "✗";
 
   return [
-    `检查结果：${languageMatches && timezoneMatches ? "通过" : "存在不一致"}`,
+    `检查结果：${report.passed ? "通过" : "存在不一致"}`,
     "",
-    `期望语言     ${expected.language}`,
-    `实际语言     ${actual?.language ?? "无法读取"}`,
-    `语言列表     ${(actual?.languages ?? []).join(", ") || "无法读取"}`,
-    `Intl Locale  ${actual?.locale ?? "无法读取"}`,
+    `${mark(report.checks.language)} 期望语言     ${expected.language}`,
+    `  实际语言     ${actual?.language ?? "无法读取"}`,
+    `${mark(report.checks.languages)} 期望语言列表 ${report.expectedLanguages.join(", ")}`,
+    `  实际语言列表 ${(actual?.languages ?? []).join(", ") || "无法读取"}`,
+    `${mark(report.checks.locale)} 期望 Locale  ${expected.language}`,
+    `  实际 Locale  ${actual?.locale ?? "无法读取"}`,
+    `  请求语言     ${expected.acceptLanguage}`,
     "",
-    `期望时区     ${expected.timezoneId}`,
-    `实际时区     ${actual?.timezone ?? "无法读取"}`,
-    `时区偏移     ${actual?.timezoneOffsetMinutes ?? "无法读取"} 分钟`,
-    `页面本地时间 ${actual?.localDateText ?? "无法读取"}`,
+    `${mark(report.checks.timezone)} 期望时区     ${expected.timezoneId}`,
+    `  实际时区     ${actual?.timezone ?? "无法读取"}`,
+    `${mark(report.checks.timezoneOffset)} 期望时区偏移 ${report.expectedOffset ?? "无法计算"} 分钟`,
+    `  实际时区偏移 ${actual?.timezoneOffsetMinutes ?? "无法读取"} 分钟`,
+    `  页面本地时间 ${actual?.localDateText ?? "无法读取"}`,
     "",
     "说明：页面 JavaScript 无法直接读取自身发出的 Accept-Language 请求头。"
   ].join("\n");
@@ -161,7 +166,8 @@ function makeSessionCard(page) {
   const card = fragment.querySelector(".session-card");
   const inspection = fragment.querySelector(".inspection");
 
-  fragment.querySelector(".session-title").textContent = page.title;
+  fragment.querySelector(".session-title").textContent =
+    `${page.title} · ${page.tabCount} 个标签页`;
   fragment.querySelector(".session-url").textContent = page.url;
   fragment.querySelector(".session-environment").textContent =
     `${page.config.language} · ${page.config.timezoneId}`;
@@ -195,6 +201,25 @@ function makeSessionCard(page) {
     }
   });
 
+  fragment.querySelector(".new-tab-button").addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    button.textContent = "正在创建…";
+    try {
+      await sendMessage({
+        type: "create-controlled-tab",
+        windowId: page.windowId
+      });
+      setMessage("新的隔离标签页已创建；可在地址栏输入网址。", "success");
+      await refreshSessions();
+    } catch (error) {
+      setMessage(error.message, "error");
+    } finally {
+      button.disabled = false;
+      button.textContent = "新建隔离标签页";
+    }
+  });
+
   fragment.querySelector(".close-button").addEventListener("click", async (event) => {
     const button = event.currentTarget;
     button.disabled = true;
@@ -219,7 +244,7 @@ async function refreshSessions() {
     if (!pages.length) {
       const empty = document.createElement("p");
       empty.className = "empty-state";
-      empty.textContent = "目前没有专用页面。";
+      empty.textContent = "目前没有隔离窗口。";
       sessionsContainer.append(empty);
       return;
     }
@@ -300,7 +325,7 @@ form.addEventListener("submit", async (event) => {
     });
 
     await sendMessage({ type: "open-controlled-page", config });
-    setMessage("专用页面已经打开。请只在新窗口中使用目标网站。", "success");
+    setMessage("隔离窗口已经打开；同一窗口内的新标签页会继承相同环境。", "success");
     await refreshSessions();
   } catch (error) {
     setMessage(error.message, "error");

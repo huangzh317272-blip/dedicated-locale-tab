@@ -1,6 +1,6 @@
 {
   "name": "dedicated-locale-tab",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "private": true,
   "description": "Browser localization and timezone-isolation testing for web i18n, language compatibility, and privacy research.",
   "license": "MIT",
@@ -21,6 +21,6 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "check": "node --check background.js && node --check control.js && node --check lib/config.js && node --check lib/environment-data.js"
+    "check": "node --check background.js && node --check control.js && node --check lib/config.js && node --check lib/environment-data.js && node --check lib/inspection.js"
   }
 }

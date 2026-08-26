@@ -23,7 +23,7 @@
             <p class="step">01</p>
             <h2 id="setup-title">配置并打开网站</h2>
           </div>
-          <span class="status-pill">单窗口隔离</span>
+          <span class="status-pill">窗口级隔离</span>
         </div>
 
         <form id="environment-form" novalidate>
@@ -113,7 +113,7 @@
 
           <div class="actions field-wide">
             <button id="open-button" class="primary-button" type="submit">
-              打开专用页面
+              打开隔离窗口
             </button>
             <p id="form-message" class="message" role="status" aria-live="polite"></p>
           </div>
@@ -124,21 +124,21 @@
         <div class="section-heading">
           <div>
             <p class="step">02</p>
-            <h2 id="sessions-title">正在运行的专用页面</h2>
+            <h2 id="sessions-title">正在运行的隔离窗口</h2>
           </div>
           <button id="refresh-button" class="text-button" type="button">刷新</button>
         </div>
 
         <div id="sessions" class="sessions" aria-live="polite">
-          <p class="empty-state">目前没有专用页面。</p>
+          <p class="empty-state">目前没有隔离窗口。</p>
         </div>
       </section>
 
       <aside class="safety-note">
         <strong>使用边界</strong>
         <p>
-          不要在普通标签页直接打开目标网站，也不要复制或恢复专用页面。浏览器重启、扩展停用或重新加载后，
-          请从本控制页重新创建。网站还可能结合 IP、Cookie、账号地区和其他设备特征判断环境。
+          一个隔离窗口对应一套语言与时区配置。请优先使用“新建隔离标签页”，不要把普通窗口中已经加载的页面拖入。
+          浏览器重启、扩展停用或重新加载后，请从本控制页重新创建。网站还可能结合 IP、Cookie、账号地区和其他设备特征判断环境。
         </p>
       </aside>
     </main>
@@ -155,8 +155,9 @@
         </div>
         <div class="session-actions">
           <button class="secondary-button focus-button" type="button">打开窗口</button>
+          <button class="secondary-button new-tab-button" type="button">新建隔离标签页</button>
           <button class="secondary-button inspect-button" type="button">检查环境</button>
-          <button class="danger-button close-button" type="button">关闭专用页</button>
+          <button class="danger-button close-button" type="button">关闭整个窗口</button>
         </div>
         <pre class="inspection" hidden></pre>
       </article>
