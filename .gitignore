@@ -1,0 +1,19 @@
+node_modules/
+
+# Extension packages and signing keys
+*.crx
+*.pem
+*.zip
+
+# Local browser test profiles and temporary files
+.tmp-*
+.chrome-*/
+.edge-*/
+*.log
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini

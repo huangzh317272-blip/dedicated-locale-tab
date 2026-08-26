@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>专用语言与时区页面</title>
+    <link rel="stylesheet" href="control.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <p class="eyebrow">DEDICATED BROWSER ENVIRONMENT</p>
+        <h1>专用语言与时区页面</h1>
+        <p class="intro">
+          只在新建的专用窗口中覆盖浏览器语言和时区。你的其他浏览器页面不会改变。
+        </p>
+      </header>
+
+      <section class="panel setup-panel" aria-labelledby="setup-title">
+        <div class="section-heading">
+          <div>
+            <p class="step">01</p>
+            <h2 id="setup-title">配置并打开网站</h2>
+          </div>
+          <span class="status-pill">单窗口隔离</span>
+        </div>
+
+        <form id="environment-form" novalidate>
+          <label class="field field-wide">
+            <span>网站地址</span>
+            <input
+              id="site-url"
+              name="url"
+              type="text"
+              inputmode="url"
+              autocomplete="url"
+              placeholder="https://example.com"
+              required
+            >
+            <small>VPN 请在点击打开之前连接好。</small>
+          </label>
+
+          <label class="field">
+            <span>搜索 VPN 国家 / 城市</span>
+            <input
+              id="preset"
+              name="preset"
+              type="text"
+              list="preset-options"
+              placeholder="输入国家或城市搜索，例如：美国 · 纽约"
+              autocomplete="off"
+            >
+            <small>输入国家或城市关键字并从建议中选择。</small>
+          </label>
+
+          <label class="field">
+            <span>国家 / 城市下拉列表</span>
+            <select id="preset-select" name="presetSelect">
+              <option value="">请选择 VPN 出口地区</option>
+            </select>
+            <small>完整浏览全部环境预设。</small>
+          </label>
+
+          <small id="list-summary" class="list-summary field-wide">
+            正在载入环境列表…
+          </small>
+
+          <datalist id="preset-options"></datalist>
+
+          <label class="field">
+            <span>浏览器语言</span>
+            <input
+              id="language"
+              name="language"
+              type="text"
+              list="language-options"
+              placeholder="en-US"
+              spellcheck="false"
+              required
+            >
+            <small>可从列表选择，也可填写有效的 BCP 47 标签。</small>
+          </label>
+
+          <datalist id="language-options"></datalist>
+
+          <label class="field">
+            <span>时区</span>
+            <input
+              id="timezone"
+              name="timezoneId"
+              type="text"
+              list="timezone-options"
+              placeholder="America/New_York"
+              spellcheck="false"
+              required
+            >
+            <small>使用 IANA 时区名称。</small>
+          </label>
+
+          <datalist id="timezone-options"></datalist>
+
+          <div class="preview field-wide" aria-live="polite">
+            <div>
+              <span>页面将看到</span>
+              <strong id="environment-preview">—</strong>
+            </div>
+            <div>
+              <span>请求语言</span>
+              <strong id="header-preview">—</strong>
+            </div>
+          </div>
+
+          <div class="actions field-wide">
+            <button id="open-button" class="primary-button" type="submit">
+              打开专用页面
+            </button>
+            <p id="form-message" class="message" role="status" aria-live="polite"></p>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel" aria-labelledby="sessions-title">
+        <div class="section-heading">
+          <div>
+            <p class="step">02</p>
+            <h2 id="sessions-title">正在运行的专用页面</h2>
+          </div>
+          <button id="refresh-button" class="text-button" type="button">刷新</button>
+        </div>
+
+        <div id="sessions" class="sessions" aria-live="polite">
+          <p class="empty-state">目前没有专用页面。</p>
+        </div>
+      </section>
+
+      <aside class="safety-note">
+        <strong>使用边界</strong>
+        <p>
+          不要在普通标签页直接打开目标网站，也不要复制或恢复专用页面。浏览器重启、扩展停用或重新加载后，
+          请从本控制页重新创建。网站还可能结合 IP、Cookie、账号地区和其他设备特征判断环境。
+        </p>
+      </aside>
+    </main>
+
+    <template id="session-template">
+      <article class="session-card">
+        <div class="session-main">
+          <div class="live-dot" aria-label="受控中"></div>
+          <div class="session-copy">
+            <h3 class="session-title"></h3>
+            <p class="session-url"></p>
+            <p class="session-environment"></p>
+          </div>
+        </div>
+        <div class="session-actions">
+          <button class="secondary-button focus-button" type="button">打开窗口</button>
+          <button class="secondary-button inspect-button" type="button">检查环境</button>
+          <button class="danger-button close-button" type="button">关闭专用页</button>
+        </div>
+        <pre class="inspection" hidden></pre>
+      </article>
+    </template>
+
+    <script type="module" src="control.js"></script>
+  </body>
+</html>

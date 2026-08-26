@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "专用语言与时区页面",
+  "description": "在独立窗口中以指定的浏览器语言和时区打开网站，不影响其他标签页。",
+  "version": "0.2.1",
+  "author": "huangzh317272-blip",
+  "homepage_url": "https://github.com/huangzh317272-blip/dedicated-locale-tab",
+  "minimum_chrome_version": "125",
+  "permissions": [
+    "debugger",
+    "storage",
+    "tabs"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "打开专用语言与时区页面"
+  }
+}

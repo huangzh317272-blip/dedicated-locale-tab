@@ -1,0 +1,26 @@
+{
+  "name": "dedicated-locale-tab",
+  "version": "0.2.1",
+  "private": true,
+  "description": "Open-source Chrome/Edge extension for per-window locale and timezone testing.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/huangzh317272-blip/dedicated-locale-tab.git"
+  },
+  "keywords": [
+    "chrome-extension",
+    "edge-extension",
+    "locale",
+    "timezone",
+    "localization-testing"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check background.js && node --check control.js && node --check lib/config.js && node --check lib/environment-data.js"
+  }
+}

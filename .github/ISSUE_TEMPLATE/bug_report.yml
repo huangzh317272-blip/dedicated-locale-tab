@@ -1,0 +1,55 @@
+name: Bug report
+description: Report reproducible incorrect behavior
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thank you for helping improve Dedicated Locale Tab.
+  - type: input
+    id: extension-version
+    attributes:
+      label: Extension version
+      placeholder: 0.2.1
+    validations:
+      required: true
+  - type: input
+    id: browser-version
+    attributes:
+      label: Browser and version
+      placeholder: Chrome 151 on Windows 11
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Selected environment
+      placeholder: en-US / America/New_York
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Do not include passwords, cookies, tokens, or private URLs.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed credentials and private information from this report.
+          required: true
