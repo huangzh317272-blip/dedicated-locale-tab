@@ -2,7 +2,7 @@
   "name": "dedicated-locale-tab",
   "version": "0.2.1",
   "private": true,
-  "description": "Open-source Chrome/Edge extension for per-window locale and timezone testing.",
+  "description": "Browser localization and timezone-isolation testing for web i18n, language compatibility, and privacy research.",
   "license": "MIT",
   "repository": {
     "type": "git",

@@ -7,6 +7,10 @@ English | [简体中文](README.md)
 
 Dedicated Locale Tab is an open-source Chrome and Microsoft Edge Manifest V3 extension for localization testing, timezone-sensitive QA, and isolated regional browser-environment validation.
 
+## Purpose and acceptable use
+
+This extension is intended for browser localization and timezone-isolation testing in web internationalization development, language-compatibility testing, and privacy research. **It must not be used to bypass website geographic restrictions, account bans, or security measures.** Users must also comply with the target website's terms of service and applicable rules.
+
 It opens a website in a dedicated window and overrides only that controlled target:
 
 - `navigator.language` and `navigator.languages`;
