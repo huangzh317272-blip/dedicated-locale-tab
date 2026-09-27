@@ -1,6 +1,6 @@
 {
   "name": "dedicated-locale-tab",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Browser localization and timezone-isolation testing for web i18n, language compatibility, and privacy research.",
   "license": "MIT",
@@ -16,11 +16,18 @@
     "localization-testing"
   ],
   "engines": {
-    "node": ">=24"
+    "node": ">=22"
   },
   "type": "module",
   "scripts": {
-    "test": "node --test",
-    "check": "node --check background.js && node --check control.js && node --check lib/config.js && node --check lib/environment-data.js && node --check lib/inspection.js"
+    "test": "npm run test:unit",
+    "test:unit": "node --test tests/*.test.js",
+    "test:e2e": "node --test e2e/*.test.mjs",
+    "check": "node scripts/check-project.mjs",
+    "package": "node scripts/package-release.mjs",
+    "store:screenshot": "node scripts/capture-store-screenshot.mjs"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.12.0"
   }
 }

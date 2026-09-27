@@ -1,40 +1,41 @@
 # Changelog
 
-All notable changes to this project are documented here.
+## [1.0.0] - 2026-09-27
+
+### Security and lifecycle
+
+- Added an explicit attachment/application/healthy/closing state machine.
+- Made all required parent and child target coverage fail-closed.
+- Added recursive iframe/worker target protection, debugger health checks, stale tab-group recovery, and tab move/replacement/discard handling.
+- Added clear Chrome 155 enterprise-policy and debugger-conflict diagnostics.
+- Session records are removed only after the controlled window is confirmed closed.
+
+### Verification
+
+- Added main-document request header capture through CDP Network events.
+- Added four-state diagnostics, a 13-point annual DST matrix, optional Temporal validation, and an Intl sample matrix.
+- Added a real Chrome for Testing E2E fixture covering the top page, cross-origin iframe, dedicated worker, and server-observed request header.
+- Added Chrome/Edge Stable and Beta E2E jobs plus Node 22/24 checks on Windows, macOS, and Linux.
+
+### Workbench and portability
+
+- Added explicit multi-language preferences, profile save/import/export, batch environment launch, and redacted JSON/Markdown reports.
+- Persisted target URLs are reduced to origins; portable profiles never contain URLs or login state.
+- Added deterministic SVG-derived extension icons and reproducible ZIP/SHA-256 packaging.
+- Added updated privacy, permissions, migration, Web Store, and release documentation.
 
 ## [0.3.0] - 2026-08-26
 
-### Added
-
-- Window-level isolation: one controlled window can contain multiple tabs that inherit the same language and timezone configuration.
-- A safe “new isolated tab” action on each running-window card.
-- Cross-platform CI jobs for Windows, macOS, and Linux.
-
-### Changed
-
-- `navigator.languages` now contains only BCP 47 language tags, while the HTTP `Accept-Language` header retains quality weights.
-- Environment inspection now validates the complete language list, Intl locale, IANA timezone, and DST-aware timezone offset.
+- Added window-level multi-tab isolation, a safe new-tab action, cross-platform unit CI, and stricter JavaScript environment inspection.
 
 ## [0.2.1] - 2026-08-26
 
-### Added
-
-- A complete visible region dropdown while retaining searchable presets.
-- Bidirectional synchronization between search, dropdown, language, and timezone fields.
-- Repository-ready tests for the searchable and dropdown controls.
+- Added a visible region dropdown synchronized with searchable presets.
 
 ## [0.2.0] - 2026-08-26
 
-### Added
-
-- 175 country and city presets.
-- 164 common BCP 47 language options.
-- A dynamic timezone list sourced from the browser's supported ICU/IANA values.
+- Added country/city presets, common BCP 47 language options, and runtime ICU/IANA timezones.
 
 ## [0.1.0] - 2026-08-26
 
-### Added
-
-- Per-window language, locale, timezone, and `Accept-Language` overrides.
-- Controlled-window management and environment inspection.
-- Child-target protection and fail-closed debugger-detach handling.
+- Added per-window language, locale, timezone, request-language overrides, and controlled-window management.

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 280" role="img" aria-labelledby="title desc">
+  <title id="title">Dedicated Locale Tab promotional tile</title>
+  <desc id="desc">Green localization and clock icon with product name and testing scope.</desc>
+  <rect width="440" height="280" rx="28" fill="#f3f0e8"/>
+  <circle cx="74" cy="72" r="42" fill="#156b52"/>
+  <path d="M49 50h31v8H70c-2 9-5 16-11 22l-7-6c5-5 8-10 9-16H49v-8Zm9 15 6-4c5 7 11 11 19 14l-4 8c-9-4-16-10-21-18Z" fill="#fffdf7"/>
+  <circle cx="91" cy="84" r="22" fill="#fffdf7" stroke="#156b52" stroke-width="6"/>
+  <path d="M91 72v13l8 5" fill="none" stroke="#156b52" stroke-width="5" stroke-linecap="round"/>
+  <text x="126" y="63" fill="#156b52" font-family="Arial, sans-serif" font-size="14" font-weight="700" letter-spacing="2">LOCALIZATION LAB</text>
+  <text x="40" y="150" fill="#17201d" font-family="Georgia, serif" font-size="35" font-weight="600">Dedicated Locale Tab</text>
+  <text x="40" y="190" fill="#61706a" font-family="Arial, sans-serif" font-size="17">Languages · Intl · IANA timezone</text>
+  <rect x="40" y="218" width="170" height="34" rx="17" fill="#dcece5"/>
+  <text x="59" y="240" fill="#0c4f3b" font-family="Arial, sans-serif" font-size="14" font-weight="700">Web i18n testing</text>
+</svg>

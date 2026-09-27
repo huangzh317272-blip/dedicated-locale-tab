@@ -1,40 +1,34 @@
 # Contributing
 
-Contributions are welcome for bug fixes, browser compatibility, accessibility, documentation, tests, and environment-data corrections.
+Contributions are welcome for localization accuracy, browser compatibility, accessibility, documentation, and tests. Do not add fingerprint spoofing, remote code, analytics, credentials, private URLs, or functionality intended to bypass geographic or security controls.
 
-## Development setup
+## Setup
 
-Requirements:
+- Node.js 22 or 24;
+- Chrome for Testing or Microsoft Edge 125+ for E2E;
+- `npm ci` after checkout.
 
-- Chrome or Microsoft Edge 125 or newer;
-- Node.js 24 or newer for local checks;
-- no runtime npm dependencies.
-
-Run the checks before opening a pull request:
+Run before submitting:
 
 ```powershell
-node --test
-node --check background.js
-node --check control.js
-node --check lib\config.js
-node --check lib\environment-data.js
+npm test
+npm run check
+npm run package
+$env:PUPPETEER_EXECUTABLE_PATH = "C:\path\to\browser.exe"
+npm run test:e2e
 ```
 
-Then load the repository folder as an unpacked extension and verify:
+The E2E test must verify top-level pages, cross-origin iframe reporting, worker reporting, and the server-observed `Accept-Language`. Do not replace it with JavaScript-only mocks.
 
-1. search and dropdown presets remain synchronized;
-2. the selected language and timezone appear in the preview;
-3. a controlled window opens only after overrides are applied;
-4. the environment inspector reports the selected values;
-5. ordinary browser tabs remain unaffected;
-6. an unexpected debugger detach closes the controlled window.
+## Design rules
 
-## Pull requests
-
-- Keep changes focused and explain their user-visible effect.
-- Add or update tests for behavior and data changes.
-- Do not add remote executable code, telemetry, trackers, credentials, or private test URLs.
-- Preserve fail-closed behavior unless a security review justifies a change.
-- Update `CHANGELOG.md` for user-visible changes.
+- Preserve the `ATTACHING → APPLYING → HEALTHY` lifecycle.
+- Required coverage failures must remain fail-closed.
+- Delete session records only after the affected window is confirmed closed.
+- `navigator.languages` contains explicit user preferences only. Expected request headers must be based on observed Chromium serialization.
+- Preserve the real User-Agent and UA Client Hints; do not imitate another OS or device.
+- Treat IP, VPN, DNS, WebRTC, cookies, fonts, screen, and hardware as out of scope.
+- Any persisted/exported data change requires a privacy review and test.
+- Update CHANGELOG and user documentation for visible changes.
 
 By contributing, you agree that your contribution is licensed under the MIT License.

@@ -15,8 +15,10 @@ test("manifest declares the required MV3 entry points and permissions", async ()
   assert.equal(manifest.background.type, "module");
   assert.deepEqual(
     [...manifest.permissions].sort(),
-    ["debugger", "storage", "tabs"]
+    ["debugger", "storage", "tabGroups", "tabs"]
   );
+  assert.equal(manifest.version, "1.0.0");
+  assert.equal(manifest.host_permissions, undefined);
 });
 
 test("all extension entry-point files exist", async () => {
@@ -27,7 +29,10 @@ test("all extension entry-point files exist", async () => {
     "control.js",
     "lib/config.js",
     "lib/environment-data.js",
-    "lib/inspection.js"
+    "lib/inspection.js",
+    "lib/profiles.js",
+    "lib/report.js",
+    "lib/session.js"
   ];
 
   for (const relativePath of paths) {
@@ -42,6 +47,9 @@ test("control page keeps searchable presets and a synchronized dropdown", async 
   assert.match(html, /id="preset-select"/);
   assert.match(html, /id="preset-options"/);
   assert.match(html, /class="secondary-button new-tab-button"/);
+  assert.match(html, /id="additional-languages"/);
+  assert.match(html, /id="export-profiles-button"/);
+  assert.match(html, /id="export-report-json"/);
 });
 
 test("background supports window-level multi-tab isolation", async () => {
@@ -50,4 +58,7 @@ test("background supports window-level multi-tab isolation", async () => {
   assert.match(background, /case "create-controlled-tab"/);
   assert.match(background, /chrome\.tabs\.onCreated\.addListener/);
   assert.match(background, /Network\.setExtraHTTPHeaders/);
+  assert.match(background, /Target\.setAutoAttach/);
+  assert.match(background, /chrome\.debugger\.getTargets/);
+  assert.match(background, /chrome\.tabs\.onAttached\.addListener/);
 });

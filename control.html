@@ -9,12 +9,15 @@
   <body>
     <main class="shell">
       <header class="hero">
-        <p class="eyebrow">DEDICATED BROWSER ENVIRONMENT</p>
-        <h1>专用语言与时区页面</h1>
-        <p class="intro">
-          浏览器本地化与时区隔离测试插件，用于网页国际化开发、语言兼容性测试和隐私研究。
-          不得用于绕过网站地区限制、账号封禁或安全措施。
-        </p>
+        <div class="brand-mark" aria-hidden="true">L/T</div>
+        <div>
+          <p class="eyebrow">LOCALIZATION &amp; TIMEZONE LAB</p>
+          <h1>专用语言与时区页面</h1>
+          <p class="intro">
+            用于网页国际化开发、语言兼容性测试和隐私研究。只隔离浏览器语言与时区，
+            不改变 IP、Cookie、登录状态或设备指纹，也不得用于绕过地区限制、账号封禁或安全措施。
+          </p>
+        </div>
       </header>
 
       <section class="panel setup-panel" aria-labelledby="setup-title">
@@ -23,140 +26,172 @@
             <p class="step">01</p>
             <h2 id="setup-title">配置并打开网站</h2>
           </div>
-          <span class="status-pill">窗口级隔离</span>
+          <span class="status-pill">窗口级本地化隔离</span>
         </div>
 
         <form id="environment-form" novalidate>
           <label class="field field-wide">
             <span>网站地址</span>
-            <input
-              id="site-url"
-              name="url"
-              type="text"
-              inputmode="url"
-              autocomplete="url"
-              placeholder="https://example.com"
-              required
-            >
-            <small>VPN 请在点击打开之前连接好。</small>
+            <input id="site-url" name="url" type="text" inputmode="url"
+              autocomplete="url" placeholder="https://example.com" required>
+            <small>仅记忆网站 origin，不保存路径、查询参数或登录令牌。VPN 需在打开前自行连接。</small>
           </label>
 
           <label class="field">
-            <span>搜索 VPN 国家 / 城市</span>
-            <input
-              id="preset"
-              name="preset"
-              type="text"
-              list="preset-options"
-              placeholder="输入国家或城市搜索，例如：美国 · 纽约"
-              autocomplete="off"
-            >
-            <small>输入国家或城市关键字并从建议中选择。</small>
+            <span>搜索国家 / 城市预设</span>
+            <input id="preset" name="preset" type="text" list="preset-options"
+              placeholder="例如：美国 · 纽约" autocomplete="off">
+            <small>预设是测试快捷项，不代表地区只有一种语言。</small>
           </label>
 
           <label class="field">
             <span>国家 / 城市下拉列表</span>
             <select id="preset-select" name="presetSelect">
-              <option value="">请选择 VPN 出口地区</option>
+              <option value="">请选择测试地区</option>
             </select>
-            <small>完整浏览全部环境预设。</small>
+            <small>完整浏览内置环境预设。</small>
           </label>
 
-          <small id="list-summary" class="list-summary field-wide">
-            正在载入环境列表…
-          </small>
-
+          <small id="list-summary" class="list-summary field-wide">正在载入环境列表…</small>
           <datalist id="preset-options"></datalist>
 
           <label class="field">
-            <span>浏览器语言</span>
-            <input
-              id="language"
-              name="language"
-              type="text"
-              list="language-options"
-              placeholder="en-US"
-              spellcheck="false"
-              required
-            >
-            <small>可从列表选择，也可填写有效的 BCP 47 标签。</small>
+            <span>首选浏览器语言</span>
+            <input id="language" name="language" type="text" list="language-options"
+              placeholder="en-US" spellcheck="false" required>
+            <small>有效的 BCP 47 标签；同时作为 Intl 默认 Locale。</small>
           </label>
-
           <datalist id="language-options"></datalist>
 
           <label class="field">
-            <span>时区</span>
-            <input
-              id="timezone"
-              name="timezoneId"
-              type="text"
-              list="timezone-options"
-              placeholder="America/New_York"
-              spellcheck="false"
-              required
-            >
-            <small>使用 IANA 时区名称。</small>
+            <span>附加语言优先级（可选）</span>
+            <input id="additional-languages" name="additionalLanguages" type="text"
+              placeholder="zh-CN, ja-JP" spellcheck="false">
+            <small>最多再填 4 项；只填写用户明确选择的语言。</small>
           </label>
 
+          <label class="field field-wide">
+            <span>时区</span>
+            <input id="timezone" name="timezoneId" type="text" list="timezone-options"
+              placeholder="America/New_York" spellcheck="false" required>
+            <small>使用当前浏览器支持的 IANA 时区名称。</small>
+          </label>
           <datalist id="timezone-options"></datalist>
 
           <div class="preview field-wide" aria-live="polite">
             <div>
-              <span>页面将看到</span>
+              <span>navigator.languages</span>
               <strong id="environment-preview">—</strong>
             </div>
             <div>
-              <span>请求语言</span>
+              <span>HTTP Accept-Language</span>
               <strong id="header-preview">—</strong>
+            </div>
+            <div>
+              <span>Intl 时区</span>
+              <strong id="timezone-preview">—</strong>
             </div>
           </div>
 
           <div class="actions field-wide">
-            <button id="open-button" class="primary-button" type="submit">
-              打开隔离窗口
-            </button>
+            <button id="open-button" class="primary-button" type="submit">打开隔离窗口</button>
+            <button id="save-profile-button" class="secondary-button" type="button">保存为测试配置</button>
             <p id="form-message" class="message" role="status" aria-live="polite"></p>
           </div>
         </form>
       </section>
 
-      <section class="panel" aria-labelledby="sessions-title">
+      <section class="panel" aria-labelledby="profiles-title">
         <div class="section-heading">
           <div>
             <p class="step">02</p>
+            <h2 id="profiles-title">测试配置与跨电脑迁移</h2>
+          </div>
+          <span class="status-pill neutral">不包含 Cookie / 登录状态</span>
+        </div>
+        <div class="profile-toolbar">
+          <label class="field grow">
+            <span>配置名称</span>
+            <input id="profile-name" type="text" maxlength="60" placeholder="例如：美国英语 · 洛杉矶">
+          </label>
+          <button id="open-matrix-button" class="primary-button compact" type="button">批量打开已勾选配置</button>
+          <button id="export-profiles-button" class="secondary-button" type="button">导出配置 JSON</button>
+          <button id="import-profiles-button" class="secondary-button" type="button">导入配置 JSON</button>
+          <input id="profile-file-input" type="file" accept="application/json,.json" hidden>
+        </div>
+        <div id="profiles" class="profiles" aria-live="polite">
+          <p class="empty-state">尚未保存测试配置。</p>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="sessions-title">
+        <div class="section-heading">
+          <div>
+            <p class="step">03</p>
             <h2 id="sessions-title">正在运行的隔离窗口</h2>
           </div>
-          <button id="refresh-button" class="text-button" type="button">刷新</button>
+          <div class="heading-actions">
+            <button id="export-report-json" class="text-button" type="button">导出 JSON 报告</button>
+            <button id="export-report-markdown" class="text-button" type="button">导出 Markdown 报告</button>
+            <button id="refresh-button" class="text-button" type="button">刷新</button>
+          </div>
         </div>
-
+        <div class="legend" aria-label="诊断状态说明">
+          <span class="health health-pass">通过</span>
+          <span class="health health-warning">警告 / 隐私缩减</span>
+          <span class="health health-fail">失败</span>
+          <span class="health health-unverifiable">无法验证 / 范围外</span>
+        </div>
         <div id="sessions" class="sessions" aria-live="polite">
           <p class="empty-state">目前没有隔离窗口。</p>
         </div>
       </section>
 
       <aside class="safety-note">
-        <strong>使用边界</strong>
+        <strong>严格模式边界</strong>
         <p>
-          一个隔离窗口对应一套语言与时区配置。请优先使用“新建隔离标签页”，不要把普通窗口中已经加载的页面拖入。
-          浏览器重启、扩展停用或重新加载后，请从本控制页重新创建。网站还可能结合 IP、Cookie、账号地区和其他设备特征判断环境。
+          请使用控制页创建新标签页。已经加载的普通标签页拖入隔离窗口会被关闭；
+          无法在首个请求前验证的原生新标签页也会被阻止。打开页面开发者工具、
+          扩展重载或浏览器恢复旧会话会使 debugger 失效，插件将关闭带有安全标记的窗口。
         </p>
       </aside>
     </main>
 
+    <template id="profile-template">
+      <article class="profile-card">
+        <label class="profile-select">
+          <input class="profile-checkbox" type="checkbox">
+          <span>
+            <strong class="profile-name"></strong>
+            <small class="profile-environment"></small>
+          </span>
+        </label>
+        <div class="profile-actions">
+          <button class="secondary-button apply-profile-button" type="button">载入</button>
+          <button class="danger-button delete-profile-button" type="button">删除</button>
+        </div>
+      </article>
+    </template>
+
     <template id="session-template">
       <article class="session-card">
         <div class="session-main">
-          <div class="live-dot" aria-label="受控中"></div>
+          <div class="live-dot"></div>
           <div class="session-copy">
-            <h3 class="session-title"></h3>
+            <div class="session-heading-line">
+              <h3 class="session-title"></h3>
+              <span class="health session-health"></span>
+            </div>
             <p class="session-url"></p>
             <p class="session-environment"></p>
+            <p class="session-meta"></p>
+            <p class="session-warning" hidden></p>
           </div>
         </div>
         <div class="session-actions">
           <button class="secondary-button focus-button" type="button">打开窗口</button>
           <button class="secondary-button new-tab-button" type="button">新建隔离标签页</button>
-          <button class="secondary-button inspect-button" type="button">检查环境</button>
+          <button class="secondary-button inspect-button" type="button">严格检查</button>
           <button class="danger-button close-button" type="button">关闭整个窗口</button>
         </div>
         <pre class="inspection" hidden></pre>

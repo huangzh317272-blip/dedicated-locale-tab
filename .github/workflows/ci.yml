@@ -3,36 +3,78 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
 
 permissions:
   contents: read
 
 jobs:
-  test:
-    name: Test on ${{ matrix.os }}
+  unit:
+    name: Unit · ${{ matrix.os }} · Node ${{ matrix.node }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 5
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-
+        node: [22, 24]
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run check
+      - run: npm run package
+      - name: Upload reproducible package
+        if: matrix.os == 'ubuntu-latest' && matrix.node == 24
+        uses: actions/upload-artifact@v6
+        with:
+          name: dedicated-locale-tab-package
+          path: |
+            dist/*.zip
+            dist/*.sha256
+          if-no-files-found: error
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
+  browser-e2e:
+    name: E2E · ${{ matrix.browser }} ${{ matrix.channel }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chrome, edge]
+        channel: [stable, beta]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
-          package-manager-cache: false
-
-      - name: Run tests
-        run: node --test
-
-      - name: Check JavaScript syntax
-        run: npm run check
-
-      - name: Validate manifest JSON
-        run: node -e "JSON.parse(require('node:fs').readFileSync('manifest.json', 'utf8'))"
+          cache: npm
+      - run: npm ci
+      - name: Set up Chrome for Testing
+        id: chrome
+        if: matrix.browser == 'chrome'
+        uses: browser-actions/setup-chrome@v2
+        with:
+          chrome-version: ${{ matrix.channel }}
+          install-dependencies: true
+      - name: Set up Microsoft Edge
+        id: edge
+        if: matrix.browser == 'edge'
+        uses: browser-actions/setup-edge@v1
+        with:
+          edge-version: ${{ matrix.channel }}
+      - name: Run Chrome E2E
+        if: matrix.browser == 'chrome'
+        run: npm run test:e2e
+        env:
+          PUPPETEER_EXECUTABLE_PATH: ${{ steps.chrome.outputs.chrome-path }}
+      - name: Run Edge E2E
+        if: matrix.browser == 'edge'
+        run: npm run test:e2e
+        env:
+          PUPPETEER_EXECUTABLE_PATH: ${{ steps.edge.outputs.edge-path }}

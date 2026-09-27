@@ -4,11 +4,13 @@ node_modules/
 *.crx
 *.pem
 *.zip
+dist/
 
 # Local browser test profiles and temporary files
 .tmp-*
 .chrome-*/
 .edge-*/
+.browser-cache/
 *.log
 
 # Editors and operating systems

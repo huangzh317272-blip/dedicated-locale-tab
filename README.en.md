@@ -5,101 +5,70 @@
 
 English | [简体中文](README.md)
 
-Dedicated Locale Tab is an open-source Chrome and Microsoft Edge Manifest V3 extension for localization testing, timezone-sensitive QA, and isolated regional browser-environment validation.
+Dedicated Locale Tab is a Manifest V3 extension for Chrome and Microsoft Edge. It creates dedicated windows for web internationalization development, language-compatibility testing, and privacy research. It changes only the controlled tabs' browser languages, default `Intl` locale, IANA timezone, and HTTP `Accept-Language`.
 
-## Purpose and acceptable use
+**It must not be used to bypass geographic restrictions, account bans, or security measures.**
 
-This extension is intended for browser localization and timezone-isolation testing in web internationalization development, language-compatibility testing, and privacy research. **It must not be used to bypass website geographic restrictions, account bans, or security measures.** Users must also comply with the target website's terms of service and applicable rules.
+## v1.0.0 highlights
 
-It opens a website in a dedicated window and overrides only controlled tabs in that window:
+- Up to five explicit `navigator.languages` preferences with the actual Chromium `Accept-Language` serialization.
+- Runtime ICU/IANA timezone discovery plus searchable country/city convenience presets.
+- Attach, configure, mark, and only then navigate to the target URL.
+- Recursive configuration of cross-process iframes and dedicated/shared workers.
+- Fail-closed handling for debugger detach, prerender replacement, tab moves, and restored sessions.
+- Inspection of the real main-document request header, current offset, a full-year DST matrix, and Temporal when available.
+- An Intl matrix covering dates, numbers, percent, collation, plurals, relative time, lists, display names, and segmentation.
+- Portable profile import/export, environment batch launch, and redacted JSON/Markdown comparison reports.
+- Unit checks on Windows, macOS, and Linux; real browser E2E on Chrome/Edge Stable and Beta.
 
-- `navigator.language` and `navigator.languages`;
-- the default JavaScript `Intl` locale;
-- the IANA timezone used by `Intl`, `Date`, and timezone offsets;
-- the HTTP `Accept-Language` value;
-- User-Agent Client Hints while preserving the browser's existing identity.
+## Scope
 
-Ordinary browser tabs are not modified.
+The extension does not modify IP routing, VPNs, DNS, WebRTC, cookies, account region, the browser profile, OS settings, fonts, screen properties, Canvas/WebGL, or other hardware characteristics. An IP test and a JavaScript timezone test measure different sources and may legitimately show different regions.
 
-## Features
+## Install
 
-- 175 searchable country and city presets with a synchronized full dropdown;
-- 164 common BCP 47 language choices plus validated custom input;
-- a complete timezone list loaded dynamically from the browser's ICU/IANA runtime;
-- controlled-window status and in-page environment inspection;
-- child-target protection for related frames and workers;
-- fail-closed behavior that closes a controlled window after an unexpected debugger detach.
-- multiple tabs per isolated window, with every tab inheriting the window's language and timezone configuration;
-- strict inspection of the primary language, complete language list, Intl locale, IANA timezone, and DST-aware offset.
+1. Download the ZIP and matching SHA-256 file from [Releases](https://github.com/huangzh317272-blip/dedicated-locale-tab/releases), or clone the repository.
+2. Extract it.
+3. Open `chrome://extensions` or `edge://extensions`.
+4. Enable **Developer mode**, select **Load unpacked**, and choose the directory containing `manifest.json`.
 
-## How it works
+The debugger permission warning is expected: native per-target locale and timezone overrides require Chromium CDP access.
 
-The extension creates a normal browser window with a tab strip, attaches Chrome DevTools Protocol to each controlled tab, applies locale, language-list, request-header, and timezone overrides, and only then navigates to the requested website. New tabs created through the control page inherit the window configuration before navigation. The extension does not change the global browser profile or operating-system settings.
+## Safe workflow
 
-## Install from source
+Enter a URL, choose explicit language preferences and a timezone, then open a controlled window. Use **New isolated tab** on the running-session card for more pages in the same environment. Use a separate window for a different environment. Run **Strict inspection** to validate the actual request and JavaScript values.
 
-1. Download or clone this repository.
-2. Open `chrome://extensions` in Chrome or `edge://extensions` in Edge.
-3. Enable **Developer mode**.
-4. Choose **Load unpacked**.
-5. Select the repository directory containing `manifest.json`.
+Dragging an already-loaded ordinary tab into a controlled window closes that tab. Opening DevTools on a controlled page, reloading the extension, or restoring a stale session can detach the debugger and therefore closes the controlled window by design.
 
-Chrome displays a debugger permission warning because CDP access is required for native per-target overrides.
+## Moving from Windows to Mac
 
-## Usage
-
-1. If relevant to the test, connect the VPN and verify its exit location first.
-2. Open the extension control page and enter the target URL.
-3. Search for a country/city preset or use the full dropdown.
-4. Confirm the language and timezone. Prefer the exact IANA timezone returned by an IP-location test.
-5. Select **Open isolated window**.
-6. Use the target site only inside the new controlled window.
-7. Use **New isolated tab** on the running-window card when more tabs are needed. Create another isolated window for a different language/timezone configuration.
-8. Return to the control page and run **Inspect environment** when needed.
-9. Close the complete isolated window when finished.
+Export profiles as JSON on the old computer, load the same extension ZIP in Chrome or Edge 125+ on the Mac, and import the JSON. The file contains profile names, language preferences, and IANA timezones only. It does not contain URLs, cookies, login state, history, IP information, or VPN settings.
 
 ## Permissions
 
 | Permission | Purpose |
 | --- | --- |
-| `debugger` | Apply CDP environment overrides to the user-created controlled target |
-| `tabs` | Create, focus, list, and close controlled tabs and windows |
-| `storage` | Remember the last environment selection and temporary session state |
+| `debugger` | Apply and verify CDP locale/language/timezone settings on controlled targets |
+| `tabs` | Safely create, enumerate, focus, and close controlled tabs and windows |
+| `tabGroups` | Mark controlled windows and recover stale groups after restart |
+| `storage` | Store preferences, portable profiles, and temporary session health |
 
-The extension contains no telemetry, ads, trackers, or remotely hosted executable code. See [PRIVACY.md](PRIVACY.md).
-
-## Limitations
-
-- A browser restart, extension reload, or disabled extension invalidates the controlled session. Recreate it from the control page.
-- A separately opened external popup should be independently inspected.
-- The extension controls language and timezone only. Websites may also evaluate IP, DNS, WebRTC, account region, cookies, geolocation permission, fonts, and other signals.
-- Country-language presets are defaults, not claims that every user in a country has the same language preference.
-
-## Windows and macOS compatibility
-
-| Platform | Chrome 125+ | Microsoft Edge 125+ | Status |
-| --- | --- | --- | --- |
-| Windows 10/11 | Supported | Supported | Used and smoke-tested on Windows |
-| macOS 13 Ventura+ | Supported | Supported | Uses the same Chromium extension APIs; manual browser smoke testing is still recommended |
-
-The project contains no Windows-only paths, registry integration, native binaries, or operating-system calls. CI runs syntax, configuration, and pure-logic tests on Windows, macOS, and Linux. CI does not launch a real desktop browser, so release validation should still load the unpacked extension in the target Chrome and Edge versions.
-
-Use the project in compliance with applicable rules and the target website's terms.
+There are no host permissions, telemetry, ads, trackers, or remotely hosted executable code. See [PRIVACY.md](PRIVACY.md).
 
 ## Development
 
-Node.js 24 or newer is recommended. No runtime npm dependencies are required.
+Node.js 22 or 24:
 
 ```powershell
-node --test
-node --check background.js
-node --check control.js
-node --check lib\config.js
-node --check lib\environment-data.js
-node --check lib\inspection.js
+npm ci
+npm test
+npm run check
+npm run package
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [CHANGELOG.md](CHANGELOG.md).
+For the real-browser test, set `PUPPETEER_EXECUTABLE_PATH` to Chrome for Testing or Edge and run `npm run test:e2e`. The test uses a local HTTP fixture only.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [Web Store materials](docs/CHROME_WEB_STORE.md).
 
 ## License
 

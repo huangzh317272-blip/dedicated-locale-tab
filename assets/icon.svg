@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Dedicated Locale Tab</title>
+  <desc id="desc">A green rounded square with language and clock symbols.</desc>
+  <rect width="128" height="128" rx="28" fill="#156b52"/>
+  <path d="M26 32h48v12H58c-2 13-8 24-17 33l-9-8c7-7 11-15 13-25H26V32Z" fill="#fffdf7"/>
+  <path d="m39 55 9-6c7 10 16 17 28 21l-6 11C56 75 46 67 39 55Z" fill="#fffdf7"/>
+  <circle cx="88" cy="82" r="25" fill="#fffdf7"/>
+  <circle cx="88" cy="82" r="18" fill="#156b52"/>
+  <path d="M88 69v14l10 6" fill="none" stroke="#fffdf7" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
