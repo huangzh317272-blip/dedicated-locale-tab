@@ -1,6 +1,6 @@
 # Chrome Web Store submission materials
 
-Prepared for v1.0.0 on 2026-09-27. The repository and ZIP are ready for submission, but the final dashboard upload requires the publisher's Chrome Web Store developer account, registration fee, identity verification, declarations, and manual approval.
+Prepared for v1.1.0 on 2026-10-01. The repository and ZIP are ready for submission, but the final dashboard upload requires the publisher's Chrome Web Store developer account, registration fee, identity verification, declarations, and manual approval.
 
 ## Listing identity
 
@@ -84,12 +84,12 @@ The screenshot is produced from the actual extension UI with `npm run store:scre
 4. Open the isolated window and return to the control page.
 5. Run **严格检查 / Strict inspection**.
 6. Confirm language, `Intl` locale, timezone, DST matrix, and main-document request header.
-7. Use **新建隔离标签页 / New isolated tab** to verify same-window inheritance.
+7. Use the browser tab-strip `+` or Ctrl/Cmd+T to verify automatic same-window inheritance, then close that tab and confirm its sibling remains healthy.
 8. Export a profile and report; confirm the profile has no URL and the report URL is reduced to an origin.
 
 ## Final dashboard checklist
 
-- Upload `dist/dedicated-locale-tab-v1.0.0.zip`.
+- Upload `dist/dedicated-locale-tab-v1.1.0.zip`.
 - Verify SHA-256 against the release `.sha256` file.
 - Add the privacy-policy URL.
 - Complete the data-use questionnaire exactly as described above.

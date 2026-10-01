@@ -17,7 +17,7 @@ test("manifest declares the required MV3 entry points and permissions", async ()
     [...manifest.permissions].sort(),
     ["debugger", "storage", "tabGroups", "tabs"]
   );
-  assert.equal(manifest.version, "1.0.0");
+  assert.equal(manifest.version, "1.1.0");
   assert.equal(manifest.host_permissions, undefined);
 });
 

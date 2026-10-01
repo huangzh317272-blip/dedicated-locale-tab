@@ -21,12 +21,34 @@ const CHILD_TARGET_TYPES = new Set([
   "shared_worker",
   "service_worker"
 ]);
+const NATIVE_NEW_TAB_URLS = new Set([
+  "",
+  "about:blank",
+  "about:newtab",
+  "chrome://newtab",
+  "chrome://newtab/",
+  "edge://newtab",
+  "edge://newtab/"
+]);
+const NATIVE_NEW_TAB_PREFIXES = [
+  "chrome://new-tab-page/",
+  "chrome-search://local-ntp/",
+  "chrome-untrusted://new-tab-page/",
+  "edge://new-tab-page/"
+];
 
 let registryQueue = Promise.resolve();
 const tabProtectionPromises = new Map();
 const childProtectionPromises = new Map();
 const networkRequests = new Map();
 const detachedTabs = new Map();
+const pendingNativeTabs = new Set();
+
+function isNativeNewTabUrl(value) {
+  const url = String(value ?? "").toLowerCase();
+  return NATIVE_NEW_TAB_URLS.has(url)
+    || NATIVE_NEW_TAB_PREFIXES.some((prefix) => url.startsWith(prefix));
+}
 
 async function readRegistry() {
   const stored = await chrome.storage.session.get(REGISTRY_KEY);
@@ -244,6 +266,36 @@ async function isWindowPresent(windowId) {
   }
 }
 
+async function isTabPresent(tabId) {
+  try {
+    await chrome.tabs.get(tabId);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function clearTabRuntimeState(tabId) {
+  pendingNativeTabs.delete(tabId);
+  for (const key of networkRequests.keys()) {
+    if (key.startsWith(`${tabId}:`)) networkRequests.delete(key);
+  }
+  for (const key of childProtectionPromises.keys()) {
+    if (key.startsWith(`${tabId}:`)) childProtectionPromises.delete(key);
+  }
+}
+
+async function rememberIsolationFailure(tabId, windowId, reason) {
+  await chrome.storage.session.set({
+    [LAST_FAILURE_KEY]: {
+      tabId,
+      windowId,
+      reason: reason || "隔离标签页已关闭。",
+      occurredAt: new Date().toISOString()
+    }
+  });
+}
+
 async function closeControlledWindow(windowId, reason) {
   if (reason !== "用户主动关闭隔离窗口。") {
     await chrome.storage.session.set({
@@ -283,6 +335,35 @@ async function closeControlledWindow(windowId, reason) {
     throw new Error(message);
   }
   await deleteWindowRecords(windowId);
+}
+
+async function closeCompromisedTab(tabId, reason) {
+  const record = await getRecord(tabId);
+  if (!record) {
+    clearTabRuntimeState(tabId);
+    return;
+  }
+  await rememberIsolationFailure(tabId, record.windowId, reason);
+  await patchRecord(tabId, {
+    status: TAB_STATUS.CLOSING,
+    lastError: reason,
+    updatedAt: new Date().toISOString()
+  });
+  let removeError = null;
+  try {
+    await chrome.tabs.remove(tabId);
+  } catch (error) {
+    removeError = error;
+  }
+  if (await isTabPresent(tabId)) {
+    await closeControlledWindow(
+      record.windowId,
+      `${reason}；无法关闭失去隔离保护的标签页：${errorText(removeError)}`
+    );
+    return;
+  }
+  clearTabRuntimeState(tabId);
+  await deleteRecord(tabId);
 }
 
 async function closeUnexpectedTab(tabId, windowId, reason) {
@@ -350,7 +431,13 @@ async function protectControlledTab(tabId, seed, navigateUrl = null) {
         updatedAt: new Date().toISOString()
       });
       try {
-        await closeControlledWindow(seed.windowId, classified.message);
+        const siblings = (await getWindowRecords(seed.windowId))
+          .filter((record) => record.tabId !== tabId && record.status === TAB_STATUS.HEALTHY);
+        if (siblings.length) {
+          await closeCompromisedTab(tabId, classified.message);
+        } else {
+          await closeControlledWindow(seed.windowId, classified.message);
+        }
       } catch (closeError) {
         throw new Error(`${classified.message}；${errorText(closeError)}`);
       }
@@ -408,14 +495,16 @@ async function listControlledPages() {
   const attached = await attachedControlledTabIds();
   const windows = new Map();
   const staleTabIds = [];
+  const compromisedTabs = new Map();
   const compromisedWindows = new Map();
+  let sanitizedTabs = false;
 
   for (const [tabIdText, record] of Object.entries(registry)) {
     const tabId = Number(tabIdText);
     try {
       const tab = await chrome.tabs.get(tabId);
       if (record.status === TAB_STATUS.HEALTHY && !attached.has(tabId)) {
-        compromisedWindows.set(record.windowId, "调试连接已断开。");
+        compromisedTabs.set(tabId, "调试连接已断开。");
       }
       const group = windows.get(record.windowId) ?? {
         windowId: record.windowId,
@@ -456,12 +545,29 @@ async function listControlledPages() {
     try {
       const allTabs = await chrome.tabs.query({ windowId: group.windowId });
       const controlledIds = new Set(group.tabs.map((tab) => tab.tabId));
-      group.untrustedTabCount = allTabs.filter((tab) => !controlledIds.has(tab.id)).length;
-      if (group.untrustedTabCount) {
-        compromisedWindows.set(group.windowId, "窗口内存在未受控标签页。");
+      const untrustedTabs = allTabs.filter((tab) =>
+        !controlledIds.has(tab.id) && !pendingNativeTabs.has(tab.id));
+      group.untrustedTabCount = untrustedTabs.length;
+      for (const tab of untrustedTabs) {
+        if (Number.isInteger(tab.id)) {
+          await closeUnexpectedTab(tab.id, group.windowId, "窗口内出现未受控标签页，已只关闭该标签页。");
+          sanitizedTabs = true;
+        }
       }
     } catch {
       compromisedWindows.set(group.windowId, "无法枚举隔离窗口中的标签页。");
+    }
+  }
+
+  if (compromisedTabs.size) {
+    for (const [tabId, reason] of compromisedTabs) {
+      try {
+        await closeCompromisedTab(tabId, reason);
+        sanitizedTabs = true;
+      } catch {
+        const record = registry[String(tabId)];
+        if (record) compromisedWindows.set(record.windowId, reason);
+      }
     }
   }
 
@@ -469,6 +575,8 @@ async function listControlledPages() {
     try { await closeControlledWindow(windowId, reason); } catch {}
     windows.delete(windowId);
   }
+
+  if (sanitizedTabs) return listControlledPages();
 
   return [...windows.values()].map((group) => {
     const activeTab = group.tabs.find((tab) => tab.active) ?? group.tabs[0];
@@ -554,8 +662,8 @@ async function inspectControlledPage(tabId) {
   }
   const attached = await attachedControlledTabIds();
   if (!attached.has(tabId)) {
-    await closeControlledWindow(record.windowId, "检查时发现调试连接已经断开。");
-    throw new Error("调试连接已经断开，窗口已按 fail-closed 规则关闭。");
+    await closeCompromisedTab(tabId, "检查时发现调试连接已经断开。");
+    throw new Error("调试连接已经断开，受影响的标签页已按 fail-closed 规则关闭。");
   }
   const probeTimestamps = getTimezoneProbeTimestamps();
   const response = await sendCommand({ tabId }, "Runtime.evaluate", {
@@ -711,9 +819,9 @@ async function protectChildTarget(source, params) {
         status: TAB_STATUS.DEGRADED,
         lastError: message
       });
-      // Do not resume a partially protected target. Closing the complete window
-      // destroys the paused target and preserves fail-closed behavior.
-      await closeControlledWindow(record.windowId, message);
+      // Do not resume a partially protected target. Closing the affected tab
+      // destroys the paused target while preserving healthy sibling tabs.
+      await closeCompromisedTab(source.tabId, message);
     }
   })();
   childProtectionPromises.set(key, protection);
@@ -776,28 +884,34 @@ chrome.debugger.onDetach.addListener((source, reason) => {
       status: TAB_STATUS.DETACHED,
       lastError: `调试连接意外断开：${reason}`
     });
-    await closeControlledWindow(record.windowId, `调试连接意外断开：${reason}`);
+    await closeCompromisedTab(source.tabId, `调试连接意外断开：${reason}`);
   };
   failClosed().catch((error) => console.error(errorText(error)));
 });
 
 chrome.tabs.onCreated.addListener((tab) => {
   if (!tab.id || !Number.isInteger(tab.windowId)) return;
+  pendingNativeTabs.add(tab.id);
   const inherit = async () => {
     const seed = await getWindowSeed(tab.windowId);
     if (!seed || await getRecord(tab.id)) return;
     const requestedUrl = tab.pendingUrl || tab.url || "";
-    if (requestedUrl && requestedUrl !== "about:blank") {
+    if (!isNativeNewTabUrl(requestedUrl)) {
       await closeUnexpectedTab(
         tab.id,
         tab.windowId,
-        "已阻止在导航前无法验证的原生新标签页；请使用控制页的“新建隔离标签页”。"
+        "已阻止带有目标网址、无法保证首个请求前完成覆盖的新标签页。"
       );
       return;
     }
+    if (requestedUrl !== "about:blank") {
+      await chrome.tabs.update(tab.id, { url: "about:blank" });
+    }
     await protectControlledTab(tab.id, seed);
   };
-  inherit().catch((error) => console.error(`新标签页隔离失败：${errorText(error)}`));
+  inherit()
+    .catch((error) => console.error(`新标签页隔离失败：${errorText(error)}`))
+    .finally(() => pendingNativeTabs.delete(tab.id));
 });
 
 chrome.tabs.onDetached.addListener((tabId, info) => {
@@ -832,10 +946,9 @@ chrome.tabs.onReplaced.addListener((addedTabId, removedTabId) => {
   const handleReplacement = async () => {
     const record = await getRecord(removedTabId);
     if (!record) return;
-    await closeControlledWindow(
-      record.windowId,
-      `浏览器以预渲染页面替换了受控标签 ${removedTabId} → ${addedTabId}，无法保证导航前覆盖。`
-    );
+    const reason = `浏览器以预渲染页面替换了受控标签 ${removedTabId} → ${addedTabId}，无法保证导航前覆盖。`;
+    await deleteRecord(removedTabId);
+    await closeUnexpectedTab(addedTabId, record.windowId, reason);
   };
   handleReplacement().catch((error) => console.error(errorText(error)));
 });
@@ -843,15 +956,25 @@ chrome.tabs.onReplaced.addListener((addedTabId, removedTabId) => {
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   const verifyLifecycle = async () => {
     const record = await getRecord(tabId);
+    const navigatedBeforeProtection = pendingNativeTabs.has(tabId)
+      && record?.status !== TAB_STATUS.HEALTHY
+      && typeof changeInfo.url === "string"
+      && !isNativeNewTabUrl(changeInfo.url);
+    if (navigatedBeforeProtection) {
+      const reason = `新标签页在隔离覆盖完成前开始导航（${changeInfo.url}），已关闭该标签页。`;
+      if (record) await closeCompromisedTab(tabId, reason);
+      else await closeUnexpectedTab(tabId, tab.windowId, reason);
+      return;
+    }
     if (!record || record.status !== TAB_STATUS.HEALTHY) return;
     if (tab.windowId !== record.windowId || (Number.isInteger(record.groupId) && tab.groupId !== record.groupId)) {
-      await closeControlledWindow(record.windowId, "受控标签页离开了隔离窗口或安全标签组。");
+      await closeCompromisedTab(tabId, "受控标签页离开了隔离窗口或安全标签组。");
       return;
     }
     if (changeInfo.discarded === false || changeInfo.status === "loading") {
       const attached = await attachedControlledTabIds();
       if (!attached.has(tabId)) {
-        await closeControlledWindow(record.windowId, "标签恢复或导航时调试连接已丢失。");
+        await closeCompromisedTab(tabId, "标签恢复或导航时调试连接已丢失。");
       }
     }
   };
@@ -860,6 +983,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 chrome.tabs.onRemoved.addListener((tabId) => {
   const handleRemoval = async () => {
+    clearTabRuntimeState(tabId);
     const record = await getRecord(tabId);
     // A programmatic fail-closed window removal owns the record lifecycle and
     // deletes all records only after the window is confirmed gone.

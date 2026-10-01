@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "专用语言与时区页面",
   "description": "浏览器本地化与时区隔离测试插件，用于网页国际化开发、语言兼容性测试和隐私研究；不得用于绕过网站地区限制、账号封禁或安全措施。",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "huangzh317272-blip",
   "homepage_url": "https://github.com/huangzh317272-blip/dedicated-locale-tab",
   "minimum_chrome_version": "125",

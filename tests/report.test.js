@@ -25,7 +25,7 @@ test("redacts paths and secrets from multi-environment reports", () => {
     expected,
     actual,
     session: { url: "https://example.com/private?token=secret", windowId: 1, status: "healthy" }
-  }], { extensionVersion: "1.0.0", browser: "Test" });
+  }], { extensionVersion: "1.1.0", browser: "Test" });
   assert.equal(redactUrl("https://example.com/private?x=1"), "https://example.com/");
   assert.equal(report.environments[0].urlOrigin, "https://example.com/");
   assert.doesNotMatch(JSON.stringify(report), /private|token=secret/);

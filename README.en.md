@@ -9,13 +9,15 @@ Dedicated Locale Tab is a Manifest V3 extension for Chrome and Microsoft Edge. I
 
 **It must not be used to bypass geographic restrictions, account bans, or security measures.**
 
-## v1.0.0 highlights
+## v1.1.0 highlights
 
 - Up to five explicit `navigator.languages` preferences with the actual Chromium `Accept-Language` serialization.
 - Runtime ICU/IANA timezone discovery plus searchable country/city convenience presets.
 - Attach, configure, mark, and only then navigate to the target URL.
 - Recursive configuration of cross-process iframes and dedicated/shared workers.
 - Fail-closed handling for debugger detach, prerender replacement, tab moves, and restored sessions.
+- Native tab-strip `+` and Ctrl/Cmd+T support: the new tab is converted to `about:blank`, protected, and added to the isolation group.
+- Closing one controlled tab preserves healthy sibling tabs; only the last tab or genuinely window-wide uncertainty closes the window.
 - Inspection of the real main-document request header, current offset, a full-year DST matrix, and Temporal when available.
 - An Intl matrix covering dates, numbers, percent, collation, plurals, relative time, lists, display names, and segmentation.
 - Portable profile import/export, environment batch launch, and redacted JSON/Markdown comparison reports.
@@ -36,9 +38,9 @@ The debugger permission warning is expected: native per-target locale and timezo
 
 ## Safe workflow
 
-Enter a URL, choose explicit language preferences and a timezone, then open a controlled window. Use **New isolated tab** on the running-session card for more pages in the same environment. Use a separate window for a different environment. Run **Strict inspection** to validate the actual request and JavaScript values.
+Enter a URL, choose explicit language preferences and a timezone, then open a controlled window. Use the browser tab-strip `+`, Ctrl/Cmd+T, or **New isolated tab** on the running-session card for more pages in the same environment. Native new tabs are converted to `about:blank` and protected before use. Use a separate window for a different environment. Run **Strict inspection** to validate the actual request and JavaScript values.
 
-Dragging an already-loaded ordinary tab into a controlled window closes that tab. Opening DevTools on a controlled page, reloading the extension, or restoring a stale session can detach the debugger and therefore closes the controlled window by design.
+Dragging an already-loaded ordinary tab into a controlled window closes that tab. Closing one controlled tab preserves healthy siblings; closing the final tab still closes the browser window. Opening DevTools, reloading the extension, or restoring a stale session closes only the affected tab when the failure is tab-scoped, while genuinely window-wide uncertainty remains fail-closed at the window level.
 
 ## Moving from Windows to Mac
 

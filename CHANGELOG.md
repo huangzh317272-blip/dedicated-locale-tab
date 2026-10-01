@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.0] - 2026-10-01
+
+### Multi-tab usability
+
+- Native browser new tabs opened with the tab-strip `+` button or Ctrl/Cmd+T are redirected to `about:blank`, protected, and added to the existing isolation group automatically.
+- Closing one controlled tab now removes only that tab's session record and preserves healthy sibling tabs.
+- Tab-scoped debugger, child-target, replacement, move, and restore failures now close only the affected tab; genuinely window-wide uncertainty remains fail-closed at the window level.
+- Pending native tabs are tracked during attachment so health polling cannot misclassify them as untrusted and close the window.
+- Added unit and real-browser E2E coverage for native new-tab inheritance and single-tab closure.
+
 ## [1.0.0] - 2026-09-27
 
 ### Security and lifecycle

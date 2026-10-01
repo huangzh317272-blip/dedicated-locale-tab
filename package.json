@@ -1,6 +1,6 @@
 {
   "name": "dedicated-locale-tab",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Browser localization and timezone-isolation testing for web i18n, language compatibility, and privacy research.",
   "license": "MIT",

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-test("new tabs inherit strict window isolation and capture the real request header", async () => {
+test("native tabs inherit isolation and closing one tab preserves healthy siblings", async () => {
   const listeners = {};
   const commands = [];
   const attachedTabs = new Set();
@@ -142,6 +142,13 @@ test("new tabs inherit strict window isolation and capture the real request head
 
   await import(`../background.js?test=${Date.now()}`);
   const sendMessage = (message) => new Promise((resolve) => listeners.message(message, {}, resolve));
+  const waitUntil = async (predicate, message) => {
+    for (let index = 0; index < 50; index += 1) {
+      if (await predicate()) return;
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+    assert.fail(message);
+  };
 
   const opened = await sendMessage({
     type: "open-controlled-page",
@@ -195,6 +202,37 @@ test("new tabs inherit strict window isolation and capture the real request head
   assert.equal(listed.data[0].status, "healthy");
   assert.equal(listed.data[0].untrustedTabCount, 0);
 
+  tabs.delete(101);
+  attachedTabs.delete(101);
+  listeners.tabRemoved(101, { windowId: 10, isWindowClosing: false });
+  await waitUntil(async () => {
+    const pages = await sendMessage({ type: "list-controlled-pages" });
+    return pages.data?.[0]?.tabCount === 1;
+  }, "closing one controlled tab should update the registry");
+  assert.equal(windows.has(10), true, "closing one tab must not close its isolated window");
+  assert.equal(tabs.has(100), true, "the healthy sibling tab must remain open");
+
+  const nativeTab = {
+    id: nextTabId++, windowId: 10, groupId: -1,
+    pendingUrl: "chrome://newtab/", url: "", title: "New tab", active: true
+  };
+  for (const tab of tabs.values()) tab.active = false;
+  tabs.set(nativeTab.id, nativeTab);
+  listeners.tabCreated(nativeTab);
+  await waitUntil(
+    () => attachedTabs.has(nativeTab.id) && tabs.get(nativeTab.id)?.groupId === tabs.get(100)?.groupId,
+    "a native new tab should become protected and join the isolation group"
+  );
+  assert.equal(tabs.get(nativeTab.id).url, "about:blank");
+  const nativeCommands = commands.filter((entry) => entry.target.tabId === nativeTab.id);
+  assert.ok(nativeCommands.some((entry) =>
+    entry.method === "Emulation.setTimezoneOverride"
+    && entry.params.timezoneId === "America/Los_Angeles"));
+  assert.ok(nativeCommands.some((entry) => entry.method === "Emulation.setUserAgentOverride"));
+  const nativeListed = await sendMessage({ type: "list-controlled-pages" });
+  assert.equal(nativeListed.data[0].tabCount, 2);
+  assert.equal(nativeListed.data[0].status, "healthy");
+
   tabs.set(999, {
     id: 999, windowId: 10, groupId: -1,
     url: "https://ordinary.example/", title: "Ordinary", active: false
@@ -205,17 +243,21 @@ test("new tabs inherit strict window isolation and capture the real request head
 
   failChildLocale = true;
   listeners.debuggerEvent(
-    { tabId: 101 },
+    { tabId: nativeTab.id },
     "Target.attachedToTarget",
     { sessionId: "child-fail", targetInfo: { type: "worker" } }
   );
-  for (let index = 0; index < 20 && windows.has(10); index += 1) {
-    await new Promise((resolve) => setImmediate(resolve));
-  }
-  assert.equal(windows.has(10), false, "a required child override failure must close the complete window");
+  await waitUntil(
+    () => !tabs.has(nativeTab.id),
+    "a required child override failure should close the affected tab"
+  );
+  assert.equal(windows.has(10), true, "a tab-scoped failure must preserve healthy sibling tabs");
+  assert.equal(tabs.has(100), true);
   assert.match(sessionState.lastIsolationFailureV1.reason, /synthetic child locale failure/);
   const afterFailure = await sendMessage({ type: "list-controlled-pages" });
-  assert.deepEqual(afterFailure.data, []);
+  assert.equal(afterFailure.data.length, 1);
+  assert.equal(afterFailure.data[0].tabCount, 1);
+  assert.equal(afterFailure.data[0].status, "healthy");
 
   delete globalThis.chrome;
 });

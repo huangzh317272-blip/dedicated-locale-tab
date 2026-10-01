@@ -27,7 +27,7 @@ for (const script of scripts) {
 
 const manifest = JSON.parse(readFileSync(join(rootPath, "manifest.json"), "utf8"));
 if (manifest.manifest_version !== 3) throw new Error("manifest_version 必须为 3。");
-if (manifest.version !== "1.0.0") throw new Error("manifest 与发布版本不一致。");
+if (manifest.version !== "1.1.0") throw new Error("manifest 与发布版本不一致。");
 if (manifest.host_permissions?.length) throw new Error("扩展不得申请全站 host_permissions。");
 for (const permission of ["debugger", "storage", "tabs", "tabGroups"]) {
   if (!manifest.permissions.includes(permission)) throw new Error(`缺少权限：${permission}`);

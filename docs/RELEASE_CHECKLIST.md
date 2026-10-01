@@ -1,4 +1,4 @@
-# v1.0.0 release checklist
+# v1.1.0 release checklist
 
 ## Automated gates
 
@@ -13,8 +13,8 @@
 
 ## Manual smoke checks
 
-- [ ] Chrome Stable: install warning, open, inspect, new tab, close
-- [ ] Edge Stable: install warning, open, inspect, new tab, close
+- [ ] Chrome Stable: open a native `+`/Ctrl+T tab, verify inheritance, close it, and confirm its sibling remains healthy
+- [ ] Edge Stable: open a native `+`/Ctrl+T tab, verify inheritance, close it, and confirm its sibling remains healthy
 - [ ] macOS Chrome or Edge: import Windows profile JSON and open environment
 - [ ] Open DevTools on a controlled tab and confirm fail-closed behavior
 - [ ] Try moving an ordinary loaded tab into the controlled window and confirm it is closed
@@ -22,7 +22,7 @@
 
 ## Release and store
 
-- [ ] Confirm `manifest.json`, package version, changelog, and Git tag are `1.0.0`
+- [ ] Confirm `manifest.json`, package version, changelog, and Git tag are `1.1.0`
 - [ ] Confirm ZIP excludes tests, npm dependencies, local browser caches, and private data
 - [ ] Sign/tag the Git commit and upload ZIP plus SHA-256 to GitHub Release
 - [ ] Review `PRIVACY.md` and `docs/CHROME_WEB_STORE.md`

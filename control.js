@@ -439,7 +439,7 @@ form.addEventListener("submit", async (event) => {
       }
     });
     await sendMessage({ type: "open-controlled-page", config });
-    setMessage("隔离窗口已打开；后续请用卡片中的“新建隔离标签页”。", "success");
+    setMessage("隔离窗口已打开；可直接用浏览器的“+”或 Ctrl/Cmd+T 新建隔离标签页。", "success");
     await refreshSessions();
   } catch (error) { setMessage(error.message, "error"); }
   finally { setBusy(false); }

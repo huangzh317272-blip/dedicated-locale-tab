@@ -80,6 +80,17 @@ async function waitForRecordedRequest(requests, predicate, timeoutMs = 10_000) {
   throw new Error("Timed out waiting for the fixture server request.");
 }
 
+async function waitForControlledPages(controlPage, predicate, timeoutMs = 15_000) {
+  const deadline = Date.now() + timeoutMs;
+  let latest = null;
+  while (Date.now() < deadline) {
+    latest = await controlPage.evaluate(() => chrome.runtime.sendMessage({ type: "list-controlled-pages" }));
+    if (latest.ok && predicate(latest.data)) return latest.data;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`Timed out waiting for controlled pages: ${JSON.stringify(latest)}`);
+}
+
 test("real Chromium applies locale and timezone before navigation to page, iframe and worker", { timeout: 70_000 }, async (context) => {
   const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH
     || await firstExisting(defaultExecutables);
@@ -194,6 +205,38 @@ test("real Chromium applies locale and timezone before navigation to page, ifram
       mainRequest.headers["accept-language"],
       "fr-FR,en-US;q=0.9",
       "The server should receive the configured weighted Accept-Language header."
+    );
+    setStage("native-new-tab");
+    const nativeTab = await controlPage.evaluate(async () => {
+      const listed = await chrome.runtime.sendMessage({ type: "list-controlled-pages" });
+      if (!listed.ok || !listed.data.length) throw new Error(listed.error || "No controlled window");
+      const tab = await chrome.tabs.create({ windowId: listed.data[0].windowId, active: true });
+      return { id: tab.id, windowId: tab.windowId };
+    });
+    await waitForControlledPages(controlPage, (pages) =>
+      pages.length === 1
+      && pages[0].tabCount === 2
+      && pages[0].status === "healthy");
+    const nativeInspection = await controlPage.evaluate((tabId) => chrome.runtime.sendMessage({
+      type: "inspect-controlled-page",
+      tabId
+    }), nativeTab.id);
+    assert.equal(nativeInspection.ok, true, nativeInspection.error);
+    assert.equal(nativeInspection.data.actual.language, "fr-FR");
+    assert.deepEqual(nativeInspection.data.actual.languages, ["fr-FR", "en-US"]);
+    assert.equal(nativeInspection.data.actual.timezone, "America/New_York");
+
+    setStage("close-one-tab");
+    await controlPage.evaluate((tabId) => chrome.tabs.remove(tabId), nativeTab.id);
+    await waitForControlledPages(controlPage, (pages) =>
+      pages.length === 1
+      && pages[0].tabCount === 1
+      && pages[0].status === "healthy");
+    assert.equal(targetPage.isClosed(), false, "closing one isolated tab must preserve its healthy sibling");
+    assert.equal(
+      await targetPage.evaluate(() => globalThis.topProbe.timezone),
+      "America/New_York",
+      "the remaining tab should retain its timezone override"
     );
   } catch (error) {
     await new Promise((resolve) => setTimeout(resolve, 250));
